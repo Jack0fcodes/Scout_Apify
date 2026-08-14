@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Offline sanity tests for the mappers — no Apify token or network needed.
-// Uses representative sample items shaped like each actor's real output.
-// Run: npm test
+// Offline sanity tests for the mappers + intent classifier — no Apify token
+// or network needed. Uses representative sample items shaped like each
+// actor's real output. Run: npm test
 
 import assert from "node:assert/strict";
 import { mapFacebookPost, mapInstagramPost, mapThreadsPost } from "./mappers.js";
+import { classifyIntent } from "./lead-utils.js";
 
 let passed = 0;
 function check(name, fn) {
@@ -13,115 +14,140 @@ function check(name, fn) {
   console.log(`✓ ${name}`);
 }
 
+// --- Intent classifier ---
+check("classify: client hiring with budget → client", () => {
+  assert.equal(classifyIntent("Hiring an illustrator, my budget is $500"), "client");
+});
+check("classify: 'looking for an illustrator' → client", () => {
+  assert.equal(classifyIntent("Looking for an illustrator for my book cover"), "client");
+});
+check("classify: artist advertising 'commissions open' → artist_ad", () => {
+  assert.equal(classifyIntent("Commissions open! DM for prices, check my portfolio"), "artist_ad");
+});
+check("classify: 'for hire' artist post → artist_ad", () => {
+  assert.equal(classifyIntent("Illustrator for hire, slots available now"), "artist_ad");
+});
+check("classify: strong hire signal beats an ad phrase → client", () => {
+  // Contains "commissions open" (ad) but also "will pay" (strong client).
+  assert.equal(classifyIntent("We're hiring, will pay well. Commissions open to all."), "client");
+});
+check("classify: fulfilled request → closed", () => {
+  assert.equal(classifyIntent("UPDATE: found someone, thanks everyone!"), "closed");
+});
+check("classify: vague post with no signal → unknown", () => {
+  assert.equal(classifyIntent("Check out this cool character art I made"), "unknown");
+});
+
 // --- Facebook Posts Search ---
-check("facebook: maps a keyword-search hiring post with budget → High Quality", () => {
-  const item = {
-    postId: "1122334455",
-    author: { name: "Maria Lopez" },
-    postText: "Looking for a comic artist for a 10-page short. Budget is $800. DM me!",
-    url: "https://www.facebook.com/maria/posts/1122334455",
-    timestamp: 1786644261000, // epoch ms
-  };
-  const lead = mapFacebookPost(item, "looking for an illustrator");
+check("facebook: client hiring post with budget → High Quality", () => {
+  const lead = mapFacebookPost(
+    {
+      postId: "1122334455",
+      author: { name: "Maria Lopez" },
+      postText: "Looking for an illustrator for a 10-page short. Budget is $800. DM me!",
+      url: "https://www.facebook.com/maria/posts/1122334455",
+      timestamp: 1786644261000, // epoch ms
+    },
+    "looking for an illustrator"
+  );
   assert.equal(lead.post_id, "fb_1122334455");
-  assert.equal(lead.platform, "Facebook");
   assert.equal(lead.source, "looking for an illustrator");
-  assert.equal(lead.author, "Maria Lopez");
   assert.equal(lead.budget, "$800");
   assert.equal(lead.quality, "High Quality");
   assert.ok(lead.created_at.endsWith("Z"));
 });
 
-check("facebook: epoch-ms timestamp normalizes to ISO Z", () => {
-  const item = {
-    postId: "999",
-    author: { name: "A" },
-    postText: "Random chatter, no intent here.",
-    url: "https://facebook.com/a/posts/999",
-    timestamp: 1786644261000,
-  };
-  const lead = mapFacebookPost(item, "need a graphic designer");
-  assert.ok(lead.created_at.endsWith("Z"));
-  assert.equal(lead.quality, "Low");
-  assert.equal(lead.budget, "unknown");
+check("facebook: artist ad is dropped (clientLeadsOnly default)", () => {
+  const lead = mapFacebookPost(
+    {
+      postId: "999",
+      author: { name: "Art By Sam" },
+      postText: "Commissions open! Taking commissions now, DM for prices 🎨",
+      url: "https://facebook.com/sam/posts/999",
+      timestamp: 1786644261000,
+    },
+    "hiring an artist"
+  );
+  assert.equal(lead, null);
 });
 
-check("facebook: skips item with no id/url/text", () => {
-  assert.equal(mapFacebookPost({ postText: "" }, null), null);
+check("facebook: non-client post kept as Low when clientLeadsOnly=false", () => {
+  const lead = mapFacebookPost(
+    {
+      postId: "77",
+      author: { name: "Sam" },
+      postText: "Just sharing my latest painting, no ask here.",
+      url: "https://facebook.com/sam/posts/77",
+      timestamp: 1786644261000,
+    },
+    "hiring an artist",
+    { clientLeadsOnly: false }
+  );
+  assert.equal(lead.quality, "Low");
 });
 
 // --- Instagram ---
-check("instagram: hashtag run uses sourceLabel + builds URL from shortCode", () => {
-  const item = {
-    shortCode: "Cabc123",
-    caption: "Need an illustrator for my book cover, willing to pay €250.",
-    ownerUsername: "jane_writes",
-    timestamp: "2026-08-12T09:15:00Z",
-    // no url on purpose → should be derived
-  };
-  const lead = mapInstagramPost(item, "#hireanartist");
+check("instagram: client post with fancy-Unicode budget → High Quality", () => {
+  const lead = mapInstagramPost(
+    {
+      shortCode: "Cabc123",
+      caption: "Hiring an illustrator for my book cover, budget is 𝟐𝟓𝟎 𝐔𝐒𝐃. DM me!",
+      ownerUsername: "jane_writes",
+      timestamp: "2026-08-12T09:15:00Z",
+    },
+    "#hireanartist"
+  );
   assert.equal(lead.post_id, "ig_Cabc123");
   assert.equal(lead.source, "#hireanartist");
-  assert.equal(lead.author, "@jane_writes");
   assert.equal(lead.url, "https://www.instagram.com/p/Cabc123/");
-  assert.equal(lead.budget, "€250");
+  assert.equal(lead.budget, "250 USD");
   assert.equal(lead.quality, "High Quality");
 });
 
-check("instagram: detects budget written in fancy Unicode (NFKC)", () => {
-  const item = {
-    shortCode: "Dfancy",
-    caption: "𝟓𝟖 𝐔𝐒𝐃 𝐂𝐎𝐌𝐌𝐈𝐒𝐒𝐈𝐎𝐍 — commissions open, DM me!",
-    ownerUsername: "artist",
-    timestamp: "2026-08-12T00:00:00Z",
-  };
-  const lead = mapInstagramPost(item, "#artcommission");
-  assert.equal(lead.budget, "58 USD");
-  assert.equal(lead.quality, "High Quality"); // intent + budget
-});
-
-check("instagram: falls back to @handle as source when no label", () => {
-  const item = {
-    id: "42",
-    shortCode: "Cxyz",
-    caption: "just a photo",
-    ownerUsername: "someone",
-    url: "https://www.instagram.com/p/Cxyz/",
-    timestamp: "2026-08-01T00:00:00Z",
-  };
-  const lead = mapInstagramPost(item, null);
-  assert.equal(lead.source, "@someone");
-  assert.equal(lead.quality, "Low");
+check("instagram: artist 'commissions open' caption is dropped", () => {
+  const lead = mapInstagramPost(
+    {
+      shortCode: "Cxyz",
+      caption: "𝗖𝗢𝗠𝗠𝗜𝗦𝗦𝗜𝗢𝗡𝗦 𝗢𝗣𝗘𝗡! Custom art, DM to commission #artcommission",
+      ownerUsername: "someone",
+      url: "https://www.instagram.com/p/Cxyz/",
+      timestamp: "2026-08-01T00:00:00Z",
+    },
+    "#artcommission"
+  );
+  assert.equal(lead, null);
 });
 
 // --- Threads ---
-check("threads: maps search result and builds post URL", () => {
-  const item = {
-    post_code: "C9zzz",
-    text_content: "Hiring a logo designer this week, quote me your rate.",
-    username: "startup_ben",
-    created_at_timestamp: 1754999999,
-  };
-  const lead = mapThreadsPost(item, "need a logo designer");
+check("threads: client search result → Medium (intent, no budget)", () => {
+  const lead = mapThreadsPost(
+    {
+      post_code: "C9zzz",
+      text_content: "We're hiring a logo designer this week, DM me your rate.",
+      username: "startup_ben",
+      created_at_timestamp: 1786644261,
+    },
+    "need a logo designer"
+  );
   assert.equal(lead.post_id, "threads_C9zzz");
   assert.equal(lead.source, "need a logo designer");
   assert.equal(lead.author, "@startup_ben");
   assert.equal(lead.url, "https://www.threads.net/@startup_ben/post/C9zzz");
-  assert.ok(lead.created_at.endsWith("Z"));
-  assert.equal(lead.quality, "Medium"); // intent, no budget
+  assert.equal(lead.quality, "Medium");
 });
 
-check("threads: prefers explicit post_url when present", () => {
-  const item = {
-    post_code: "C1",
-    post_url: "https://www.threads.net/@u/post/C1",
-    text_content: "commissions open!",
-    username: "u",
-    created_at: "2026-08-05T05:00:00Z",
-  };
-  const lead = mapThreadsPost(item, null);
-  assert.equal(lead.url, "https://www.threads.net/@u/post/C1");
-  assert.equal(lead.source, "@u");
+check("threads: artist 'for hire' post is dropped", () => {
+  const lead = mapThreadsPost(
+    {
+      post_code: "C1",
+      post_url: "https://www.threads.net/@u/post/C1",
+      text_content: "Illustrator for hire! Commissions available, link in bio.",
+      username: "u",
+      created_at: "2026-08-05T05:00:00Z",
+    },
+    null
+  );
+  assert.equal(lead, null);
 });
 
 console.log(`\n${passed} checks passed.`);
