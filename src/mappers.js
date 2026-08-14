@@ -9,7 +9,7 @@
 import { buildLead, deriveTitle } from "./lead-utils.js";
 
 /** Facebook Posts Search (scraper_one/facebook-posts-search) → lead */
-export function mapFacebookPost(item, sourceLabel, keywords) {
+export function mapFacebookPost(item, sourceLabel, opts) {
   const text = item.postText || "";
   const id = item.postId;
   return buildLead(
@@ -23,12 +23,12 @@ export function mapFacebookPost(item, sourceLabel, keywords) {
       url: item.url,
       created_at: item.timestamp, // epoch milliseconds
     },
-    keywords
+    opts
   );
 }
 
 /** Instagram Scraper → lead (posts/reels from hashtag search or profile) */
-export function mapInstagramPost(item, sourceLabel, keywords) {
+export function mapInstagramPost(item, sourceLabel, opts) {
   const text = item.caption || "";
   const id = item.shortCode || item.id;
   // Prefer the run's search context (e.g. "#hireanartist"); otherwise the
@@ -47,12 +47,12 @@ export function mapInstagramPost(item, sourceLabel, keywords) {
       url: item.url || (item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : ""),
       created_at: item.timestamp,
     },
-    keywords
+    opts
   );
 }
 
 /** Threads Scraper → lead (search results or user posts) */
-export function mapThreadsPost(item, sourceLabel, keywords) {
+export function mapThreadsPost(item, sourceLabel, opts) {
   // Skip pure reposts with no original text of their own.
   const text = item.text_content || "";
   const id = item.post_code || item.post_id;
@@ -70,7 +70,7 @@ export function mapThreadsPost(item, sourceLabel, keywords) {
         : ""),
       created_at: item.created_at_timestamp ?? item.created_at,
     },
-    keywords
+    opts
   );
 }
 

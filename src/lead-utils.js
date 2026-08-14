@@ -11,22 +11,184 @@ export const QUALITY = {
   LOW: "Low",
 };
 
-// Default hiring-intent keywords. Overridable via config.leadKeywords.
-export const DEFAULT_LEAD_KEYWORDS = [
-  "looking for",
-  "need a",
-  "need an",
-  "hiring",
-  "for hire",
-  "commission",
-  "budget",
-  "paid",
+// ---------------------------------------------------------------------------
+// Intent classification
+//
+// The goal is to keep only posts where a CLIENT is looking to hire/pay an
+// artist, and drop:
+//   • artists advertising their own services ("commissions open", "for hire")
+//   • closed / fulfilled / outdated requests ("found someone", "comms closed")
+//   • vague posts with no hiring signal at all
+//
+// Each set is overridable via config (strongHireKeywords, includeKeywords,
+// excludeKeywords, closedKeywords).
+// ---------------------------------------------------------------------------
+
+// Unambiguous "a client wants to pay" signals — these WIN over artist-ad
+// signals when both appear (e.g. "hiring an artist, commissions welcome").
+export const DEFAULT_STRONG_HIRE = [
+  "looking to hire",
+  "want to hire",
+  "wanting to hire",
+  "we are hiring",
+  "we're hiring",
+  "now hiring",
+  "hiring a ",
+  "hiring an ",
+  "will pay",
   "willing to pay",
-  "dm me",
-  "quote",
-  "freelanc",
-  "who can",
+  "happy to pay",
+  "paid gig",
+  "paid commission",
+  "paid project",
+  "budget is",
+  "budget of",
+  "my budget",
+  "[paid]",
+  "commission an artist",
+  "commission an illustrator",
+  "to commission an",
+  "to commission a",
 ];
+
+// Weaker client-side signals (kept only if no artist-ad signal is present).
+export const DEFAULT_INCLUDE = [
+  "hiring",
+  "looking for an artist",
+  "looking for a artist",
+  "looking for an illustrator",
+  "looking for a illustrator",
+  "looking for a designer",
+  "looking for a graphic designer",
+  "looking for a logo",
+  "looking for someone to draw",
+  "looking for someone to design",
+  "looking for someone to make",
+  "need an artist",
+  "need a artist",
+  "need artist",
+  "need an illustrator",
+  "need illustrator",
+  "need a designer",
+  "need designer",
+  "need a graphic designer",
+  "need a logo",
+  "who can draw",
+  "who can design",
+  "recommend an artist",
+  "recommend an illustrator",
+  "paying artist",
+  "paying illustrator",
+  "paying designer",
+  "seeking an artist",
+  "seeking artist",
+  "in search of an artist",
+  "anyone available to draw",
+  "anyone who can draw",
+];
+
+// Artist self-promotion signals (a creator selling their services). Drop.
+export const DEFAULT_EXCLUDE = [
+  "for hire",
+  "[for hire]",
+  "[fh]",
+  "commissions open",
+  "commission open",
+  "comms open",
+  "commissions are open",
+  "open for commission",
+  "open for commissions",
+  "open commissions",
+  "taking commission",
+  "taking commissions",
+  "accepting commission",
+  "accepting commissions",
+  "commission sheet",
+  "comm sheet",
+  "commission slots",
+  "slots open",
+  "slots available",
+  "slots left",
+  "dm for commission",
+  "dm for a commission",
+  "dm for prices",
+  "dm for pricing",
+  "dm for portfolio",
+  "dm to commission",
+  "dm me to order",
+  "message me to order",
+  "my portfolio",
+  "my commission",
+  "my commissions",
+  "my price",
+  "my prices",
+  "price list",
+  "price sheet",
+  "prices below",
+  "ko-fi",
+  "kofi",
+  "patreon",
+  "buymeacoffee",
+  "commissionsopen",
+  "artistforhire",
+  "openforcommissions",
+  "available for work",
+  "available for commission",
+  "available for hire",
+  "now booking",
+  "booking now",
+  "commissions available",
+  "link in bio",
+];
+
+// Closed / fulfilled / outdated requests. Drop.
+export const DEFAULT_CLOSED = [
+  "commissions closed",
+  "commission closed",
+  "comms closed",
+  "closed for commission",
+  "found someone",
+  "found an artist",
+  "found my artist",
+  "no longer looking",
+  "no longer available",
+  "position filled",
+  "role filled",
+  "all slots taken",
+  "fully booked",
+  "update: found",
+  "we found someone",
+  "i found someone",
+  "sold out",
+  "this is now closed",
+];
+
+/** Back-compat alias (used by older callers/tests). */
+export const DEFAULT_LEAD_KEYWORDS = DEFAULT_INCLUDE;
+
+/**
+ * Classify a post's intent from its text:
+ *   "client"    → a client looking to hire/pay (keep)
+ *   "artist_ad" → an artist advertising services (drop)
+ *   "closed"    → a fulfilled/closed/outdated request (drop)
+ *   "unknown"   → no hiring signal; vague/non-committal (drop)
+ */
+export function classifyIntent(text, opts = {}) {
+  const {
+    strong = DEFAULT_STRONG_HIRE,
+    include = DEFAULT_INCLUDE,
+    exclude = DEFAULT_EXCLUDE,
+    closed = DEFAULT_CLOSED,
+  } = opts;
+  const t = normalize(text).toLowerCase();
+  const has = (list) => list.some((k) => t.includes(k.toLowerCase()));
+
+  if (has(closed)) return "closed";
+  if (has(strong)) return "client"; // strong client signal wins over ads
+  if (has(exclude)) return "artist_ad";
+  if (has(include)) return "client";
+  return "unknown";
+}
 
 // Matches common budget mentions: "$300", "€250", "£500", "$25-30",
 // "25-30$", "1,200 USD", "500 dollars". Returns the first match, normalized.
@@ -81,30 +243,37 @@ export function detectBudget(text) {
 }
 
 /**
- * Heuristic quality score:
- *   High Quality → clear hiring intent AND a budget was found
- *   Medium       → hiring intent OR a budget (but not both)
- *   Low          → neither signal
+ * Quality score for a classified lead:
+ *   High Quality → client intent AND a budget was found
+ *   Medium       → client intent, no budget
+ *   Low          → not a client lead (only reachable when clientLeadsOnly=false)
  */
-export function scoreQuality(text, budget, keywords = DEFAULT_LEAD_KEYWORDS) {
-  const t = normalize(text).toLowerCase();
-  const hasIntent = keywords.some((k) => t.includes(k.toLowerCase()));
+export function scoreQuality(intent, budget) {
+  if (intent !== "client") return QUALITY.LOW;
   const hasBudget = Boolean(budget) && budget !== "unknown";
-  if (hasIntent && hasBudget) return QUALITY.HIGH;
-  if (hasIntent || hasBudget) return QUALITY.MEDIUM;
-  return QUALITY.LOW;
+  return hasBudget ? QUALITY.HIGH : QUALITY.MEDIUM;
 }
 
 /**
  * Assemble a validated Scout lead from partial fields, filling budget /
- * quality / title automatically when not supplied. Returns null if the
- * lead lacks the minimum needed to be useful (id, url, and some text).
+ * quality / title automatically when not supplied.
+ *
+ * Returns null when the lead lacks the minimum needed (id, url, text) OR —
+ * when opts.clientLeadsOnly is true (the default) — when the post isn't a
+ * genuine client hiring request (artist ad, closed, or vague).
+ *
+ * opts: { strong, include, exclude, closed, clientLeadsOnly }
  */
-export function buildLead(partial, keywords = DEFAULT_LEAD_KEYWORDS) {
+export function buildLead(partial, opts = {}) {
+  const clientLeadsOnly = opts.clientLeadsOnly !== false;
+
   const content = clean(partial.content);
   const url = clean(partial.url);
   const rawId = partial.post_id ? String(partial.post_id) : "";
   if (!rawId || !url || !content) return null;
+
+  const intent = classifyIntent(content, opts);
+  if (clientLeadsOnly && intent !== "client") return null;
 
   const budget =
     partial.budget && partial.budget !== "unknown"
@@ -119,7 +288,7 @@ export function buildLead(partial, keywords = DEFAULT_LEAD_KEYWORDS) {
     title: clean(partial.title) || deriveTitle(content),
     content,
     url,
-    quality: partial.quality || scoreQuality(content, budget, keywords),
+    quality: partial.quality || scoreQuality(intent, budget),
     budget,
     created_at: toIso(partial.created_at),
   };

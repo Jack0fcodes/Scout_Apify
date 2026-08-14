@@ -48,9 +48,38 @@ every field is required:
 
 - **budget** — first currency amount found in the post (`$300`, `€250`,
   `£500`, `$25-30`, `1,200 USD`, …), else `unknown`.
-- **quality** — `High Quality` when the post shows hiring intent **and** a
-  budget; `Medium` for one of the two; `Low` for neither. Hiring-intent
-  keywords are configurable in `config.json` → `leadKeywords`.
+- **quality** — `High Quality` when a client lead has a budget; `Medium` when
+  it doesn't. (`Low` only appears if you disable filtering — see below.)
+
+## Lead filtering (client vs. artist)
+
+The pipeline only keeps posts where a **client is looking to hire/pay an
+artist**, and drops:
+
+- **artists advertising themselves** — "commissions open", "for hire",
+  "taking commissions", "DM for prices", "my portfolio", …
+- **closed / fulfilled / outdated** requests — "found someone",
+  "commissions closed", "position filled", …
+- **vague / non-committal** posts with no hiring signal at all.
+
+How it decides (in order), per post:
+
+1. A **closed** signal → drop.
+2. A **strong hire** signal ("looking to hire", "will pay", "budget is",
+   "we're hiring") → keep, even if ad phrases are also present.
+3. An **artist-ad** signal → drop.
+4. A weaker **client** signal ("need an illustrator", "who can draw",
+   "paying artist") → keep.
+5. Otherwise → drop as vague.
+
+All four keyword sets are editable in `config.json`
+(`strongHireKeywords`, `includeKeywords`, `excludeKeywords`,
+`closedKeywords`). To keep **everything** and just label quality instead of
+dropping, set `"clientLeadsOnly": false`.
+
+> Note: this is keyword-based, so it's high-precision but not perfect —
+> a rare off-topic post that happens to contain a hiring phrase can slip
+> through. Tighten the keyword lists to taste.
 
 ## Configure what gets scraped
 

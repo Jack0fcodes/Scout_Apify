@@ -16,11 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MAPPERS } from "./mappers.js";
-import {
-  DEFAULT_LEAD_KEYWORDS,
-  dedupeById,
-  sortNewestFirst,
-} from "./lead-utils.js";
+import { dedupeById, sortNewestFirst } from "./lead-utils.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -129,7 +125,7 @@ function buildJobs(config) {
   return jobs;
 }
 
-async function runJob(client, job, keywords) {
+async function runJob(client, job, opts) {
   const mapper = MAPPERS[job.key];
   const label = job.sourceLabel ? ` [${job.sourceLabel}]` : "";
   console.log(`→ Running ${job.actor}${label} …`);
@@ -138,13 +134,13 @@ async function runJob(client, job, keywords) {
   const leads = [];
   for (const item of items) {
     try {
-      const lead = mapper(item, job.sourceLabel, keywords);
+      const lead = mapper(item, job.sourceLabel, opts);
       if (lead) leads.push(lead);
     } catch (err) {
       console.warn(`  ! skipped an item: ${err.message}`);
     }
   }
-  console.log(`  ✓ ${items.length} items → ${leads.length} leads`);
+  console.log(`  ✓ ${items.length} items → ${leads.length} client lead(s)`);
   return leads;
 }
 
@@ -168,7 +164,14 @@ async function main() {
   }
 
   const config = loadConfig();
-  const keywords = config.leadKeywords?.length ? config.leadKeywords : DEFAULT_LEAD_KEYWORDS;
+  // Classifier options — undefined arrays fall back to the built-in defaults.
+  const opts = {
+    clientLeadsOnly: config.clientLeadsOnly !== false,
+    strong: config.strongHireKeywords,
+    include: config.includeKeywords,
+    exclude: config.excludeKeywords,
+    closed: config.closedKeywords,
+  };
   const client = new ApifyClient({ token });
 
   const jobs = buildJobs(config);
@@ -181,7 +184,7 @@ async function main() {
   let failures = 0;
   for (const job of jobs) {
     try {
-      const leads = await runJob(client, job, keywords);
+      const leads = await runJob(client, job, opts);
       fresh.push(...leads);
     } catch (err) {
       failures += 1;
