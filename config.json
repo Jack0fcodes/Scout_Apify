@@ -2,7 +2,7 @@
   "outputFile": "leads.json",
   "maxLeads": 250,
   "keepExisting": true,
-  "onlyPostsNewerThan": "14 days",
+  "onlyPostsNewerThan": "7 days",
 
   "clientLeadsOnly": true,
 
@@ -221,7 +221,7 @@
     "facebook": {
       "enabled": true,
       "actor": "scraper_one/facebook-posts-search",
-      "resultsCount": 40,
+      "resultsCount": 25,
       "searchType": "latest",
       "keywords": [
         "looking for an illustrator",
@@ -238,7 +238,7 @@
     "instagram": {
       "enabled": true,
       "actor": "apify/instagram-scraper",
-      "resultsLimit": 40,
+      "resultsLimit": 25,
       "hashtags": [
         "#hireanartist",
         "#hireanillustrator",
@@ -252,7 +252,7 @@
     "threads": {
       "enabled": true,
       "actor": "futurizerush/meta-threads-scraper",
-      "maxPosts": 40,
+      "maxPosts": 25,
       "searchFilter": "recent",
       "keywords": [
         "looking for an illustrator",

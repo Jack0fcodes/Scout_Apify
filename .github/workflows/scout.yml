@@ -5,9 +5,14 @@ name: Scout Meta Scraper
 # the Scout app can fetch it from the raw endpoint.
 
 on:
-  schedule:
-    - cron: "0 */6 * * *" # every 6 hours (UTC)
-  workflow_dispatch: {} # manual "Run workflow" button
+  # Scheduled auto-runs are PAUSED to stay within the Apify free tier.
+  # To resume, uncomment the schedule block below. Once a day (not every 6h)
+  # is plenty — the 6-hour cadence mostly re-scraped the same recent posts,
+  # which dedup then threw away, so it burned ~4x the credits for the same
+  # unique leads.
+  # schedule:
+  #   - cron: "0 8 * * *" # once daily at 08:00 UTC
+  workflow_dispatch: {} # manual "Run workflow" button (still works while paused)
 
 permissions:
   contents: write
