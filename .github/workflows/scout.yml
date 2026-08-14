@@ -6,14 +6,14 @@ name: Scout Meta Scraper
 
 on:
   # Scheduled auto-runs are PAUSED to stay within the Apify free tier ($5/mo).
-  # A full cycle (current config) costs ~$1.50 in Apify credits, so:
-  #   weekly        ~$6.6/mo   every 10 days ~$4.6/mo   (near/under $5 free)
-  #   2x/week ~$13   daily ~$46 (needs a paid Apify plan)
-  # To resume, uncomment the schedule block. Pick a cadence you can afford;
-  # weekly is a good near-free default. To go more often for free, first
-  # trim the keyword lists / results in config.json (see README).
+  # With Threads batched into one run, a cycle costs ~$0.5-0.75 in credits.
+  # Cadence guide (approx / month):
+  #   Mon & Thu (below)  ~$4-4.6   weekly ~$2.2-3.2   (fit $5 free)
+  #   Mon/Wed/Fri ~$7    daily ~$22 (need a paid Apify plan)
+  # To resume, uncomment the schedule block. The 5-day window in config.json
+  # matches this Mon/Thu cadence (max gap is 4 days), so every post is caught.
   # schedule:
-  #   - cron: "0 8 * * 1" # weekly, Mondays 08:00 UTC
+  #   - cron: "0 8 * * 1,4" # Mondays & Thursdays 08:00 UTC (skips the weekend)
   workflow_dispatch: {} # manual "Run workflow" button (still works while paused)
 
 permissions:
