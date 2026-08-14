@@ -26,9 +26,9 @@
   ],
   "sources": {
     "facebookGroups": {
-      "enabled": false,
+      "enabled": true,
       "actor": "apify/facebook-groups-scraper",
-      "resultsLimit": 40,
+      "resultsLimit": 20,
       "viewOption": "CHRONOLOGICAL",
       "groupUrls": [
         "https://www.facebook.com/groups/874728723021553"
@@ -37,7 +37,7 @@
     "instagram": {
       "enabled": true,
       "actor": "apify/instagram-scraper",
-      "resultsLimit": 20,
+      "resultsLimit": 40,
       "hashtags": [
         "#hireanartist",
         "#artcommission"
@@ -45,7 +45,7 @@
       "profileUrls": []
     },
     "threads": {
-      "enabled": false,
+      "enabled": true,
       "actor": "futurizerush/meta-threads-scraper",
       "maxPosts": 40,
       "searchFilter": "recent",
