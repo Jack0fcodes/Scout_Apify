@@ -64,10 +64,19 @@ export function deriveTitle(text, max = 90) {
   return base.length > max ? base.slice(0, max - 1).trimEnd() + "…" : base;
 }
 
+/**
+ * NFKC folds "fancy" Unicode (mathematical-bold/italic letters and digits
+ * common in IG captions, e.g. "𝟓𝟖 𝐔𝐒𝐃") down to plain ASCII so budget and
+ * keyword detection can see it.
+ */
+function normalize(text) {
+  return String(text || "").normalize("NFKC");
+}
+
 /** Pull a budget string out of free text, or "unknown" if none found. */
 export function detectBudget(text) {
   if (!text) return "unknown";
-  const m = String(text).match(BUDGET_RE);
+  const m = normalize(text).match(BUDGET_RE);
   return m ? clean(m[0]) : "unknown";
 }
 
@@ -78,7 +87,7 @@ export function detectBudget(text) {
  *   Low          → neither signal
  */
 export function scoreQuality(text, budget, keywords = DEFAULT_LEAD_KEYWORDS) {
-  const t = (text || "").toLowerCase();
+  const t = normalize(text).toLowerCase();
   const hasIntent = keywords.some((k) => t.includes(k.toLowerCase()));
   const hasBudget = Boolean(budget) && budget !== "unknown";
   if (hasIntent && hasBudget) return QUALITY.HIGH;

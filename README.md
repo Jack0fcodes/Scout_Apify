@@ -20,7 +20,7 @@ and `Scout_Grok` sources.
 Add this repo's raw endpoint as a 3rd source in Scout's `LeadStore.swift`:
 
 ```
-https://raw.githubusercontent.com/JackOfcodes/Scout_Apify/main/leads.json
+https://raw.githubusercontent.com/Jack0fcodes/Scout_Apify/main/leads.json
 ```
 
 (Scout merges + dedupes all sources by `post_id`, so Meta leads slot in

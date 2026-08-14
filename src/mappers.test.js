@@ -71,6 +71,18 @@ check("instagram: hashtag run uses sourceLabel + builds URL from shortCode", () 
   assert.equal(lead.quality, "High Quality");
 });
 
+check("instagram: detects budget written in fancy Unicode (NFKC)", () => {
+  const item = {
+    shortCode: "Dfancy",
+    caption: "𝟓𝟖 𝐔𝐒𝐃 𝐂𝐎𝐌𝐌𝐈𝐒𝐒𝐈𝐎𝐍 — commissions open, DM me!",
+    ownerUsername: "artist",
+    timestamp: "2026-08-12T00:00:00Z",
+  };
+  const lead = mapInstagramPost(item, "#artcommission");
+  assert.equal(lead.budget, "58 USD");
+  assert.equal(lead.quality, "High Quality"); // intent + budget
+});
+
 check("instagram: falls back to @handle as source when no label", () => {
   const item = {
     id: "42",
