@@ -3,25 +3,25 @@
 // targeted) and returns a partial lead for buildLead(), or null to skip.
 //
 // Field references verified against each actor's inferred output schema:
-//   apify/facebook-groups-scraper, apify/instagram-scraper,
+//   scraper_one/facebook-posts-search, apify/instagram-scraper,
 //   futurizerush/meta-threads-scraper.
 
 import { buildLead, deriveTitle } from "./lead-utils.js";
 
-/** Facebook Groups Scraper → lead */
+/** Facebook Posts Search (scraper_one/facebook-posts-search) → lead */
 export function mapFacebookPost(item, sourceLabel, keywords) {
-  const text = item.text || item.title || "";
-  const id = item.legacyId || item.id || item.feedbackId || item.postId;
+  const text = item.postText || "";
+  const id = item.postId;
   return buildLead(
     {
       post_id: id ? `fb_${id}` : "",
       platform: "Facebook",
-      source: item.groupTitle || sourceLabel || "Facebook Group",
-      author: item.user?.name || "Unknown",
-      title: item.title || deriveTitle(text),
+      source: sourceLabel || "Facebook Search",
+      author: item.author?.name || "Unknown",
+      title: deriveTitle(text),
       content: text,
-      url: item.url || item.facebookUrl || item.link,
-      created_at: item.timestamp ?? item.time,
+      url: item.url,
+      created_at: item.timestamp, // epoch milliseconds
     },
     keywords
   );
@@ -75,7 +75,7 @@ export function mapThreadsPost(item, sourceLabel, keywords) {
 }
 
 export const MAPPERS = {
-  facebookGroups: mapFacebookPost,
+  facebook: mapFacebookPost,
   instagram: mapInstagramPost,
   threads: mapThreadsPost,
 };

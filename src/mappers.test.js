@@ -13,44 +13,41 @@ function check(name, fn) {
   console.log(`✓ ${name}`);
 }
 
-// --- Facebook Groups ---
-check("facebook: maps a hiring post with budget → High Quality", () => {
+// --- Facebook Posts Search ---
+check("facebook: maps a keyword-search hiring post with budget → High Quality", () => {
   const item = {
-    legacyId: "1122334455",
-    groupTitle: "Freelance Illustrators Hub",
-    user: { name: "Maria Lopez" },
-    title: "Looking for a comic artist",
-    text: "Looking for a comic artist for a 10-page short. Budget is $800. DM me!",
-    url: "https://www.facebook.com/groups/x/posts/1122334455/",
-    time: "2026-08-10T12:00:00.000Z",
+    postId: "1122334455",
+    author: { name: "Maria Lopez" },
+    postText: "Looking for a comic artist for a 10-page short. Budget is $800. DM me!",
+    url: "https://www.facebook.com/maria/posts/1122334455",
+    timestamp: 1786644261000, // epoch ms
   };
-  const lead = mapFacebookPost(item, null);
+  const lead = mapFacebookPost(item, "looking for an illustrator");
   assert.equal(lead.post_id, "fb_1122334455");
   assert.equal(lead.platform, "Facebook");
-  assert.equal(lead.source, "Freelance Illustrators Hub");
+  assert.equal(lead.source, "looking for an illustrator");
   assert.equal(lead.author, "Maria Lopez");
   assert.equal(lead.budget, "$800");
   assert.equal(lead.quality, "High Quality");
-  assert.equal(lead.created_at, "2026-08-10T12:00:00.000Z");
+  assert.ok(lead.created_at.endsWith("Z"));
 });
 
-check("facebook: epoch timestamp normalizes to ISO Z", () => {
+check("facebook: epoch-ms timestamp normalizes to ISO Z", () => {
   const item = {
-    id: "999",
-    groupTitle: "G",
-    user: { name: "A" },
-    text: "Random chatter, no intent here.",
-    url: "https://facebook.com/groups/g/posts/999/",
-    timestamp: 1754827200, // seconds
+    postId: "999",
+    author: { name: "A" },
+    postText: "Random chatter, no intent here.",
+    url: "https://facebook.com/a/posts/999",
+    timestamp: 1786644261000,
   };
-  const lead = mapFacebookPost(item, null);
+  const lead = mapFacebookPost(item, "need a graphic designer");
   assert.ok(lead.created_at.endsWith("Z"));
   assert.equal(lead.quality, "Low");
   assert.equal(lead.budget, "unknown");
 });
 
 check("facebook: skips item with no id/url/text", () => {
-  assert.equal(mapFacebookPost({ text: "" }, null), null);
+  assert.equal(mapFacebookPost({ postText: "" }, null), null);
 });
 
 // --- Instagram ---
