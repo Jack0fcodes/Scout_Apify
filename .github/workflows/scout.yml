@@ -5,13 +5,15 @@ name: Scout Meta Scraper
 # the Scout app can fetch it from the raw endpoint.
 
 on:
-  # Scheduled auto-runs are PAUSED to stay within the Apify free tier.
-  # To resume, uncomment the schedule block below. Once a day (not every 6h)
-  # is plenty — the 6-hour cadence mostly re-scraped the same recent posts,
-  # which dedup then threw away, so it burned ~4x the credits for the same
-  # unique leads.
+  # Scheduled auto-runs are PAUSED to stay within the Apify free tier ($5/mo).
+  # A full cycle (current config) costs ~$1.50 in Apify credits, so:
+  #   weekly        ~$6.6/mo   every 10 days ~$4.6/mo   (near/under $5 free)
+  #   2x/week ~$13   daily ~$46 (needs a paid Apify plan)
+  # To resume, uncomment the schedule block. Pick a cadence you can afford;
+  # weekly is a good near-free default. To go more often for free, first
+  # trim the keyword lists / results in config.json (see README).
   # schedule:
-  #   - cron: "0 8 * * *" # once daily at 08:00 UTC
+  #   - cron: "0 8 * * 1" # weekly, Mondays 08:00 UTC
   workflow_dispatch: {} # manual "Run workflow" button (still works while paused)
 
 permissions:
