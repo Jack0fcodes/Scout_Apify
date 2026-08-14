@@ -30,6 +30,28 @@ function loadConfig() {
 }
 
 /**
+ * Convert a date filter to YYYY-MM-DD for actors that need an absolute date.
+ * Accepts an ISO/YYYY-MM-DD string (passed through as the date part) or a
+ * relative value like "14 days", "2 months", "1 year". Returns undefined if
+ * it can't parse one.
+ */
+function toStartDate(value) {
+  if (!value) return undefined;
+  const iso = String(value).match(/^\d{4}-\d{2}-\d{2}/);
+  if (iso) return iso[0];
+  const rel = String(value).match(/^(\d+)\s*(day|week|month|year)s?$/i);
+  if (!rel) return undefined;
+  const n = Number(rel[1]);
+  const d = new Date();
+  const unit = rel[2].toLowerCase();
+  if (unit === "day") d.setDate(d.getDate() - n);
+  else if (unit === "week") d.setDate(d.getDate() - n * 7);
+  else if (unit === "month") d.setMonth(d.getMonth() - n);
+  else if (unit === "year") d.setFullYear(d.getFullYear() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
  * Expand config into a flat list of jobs. Each job is:
  *   { key, actor, input, sourceLabel }
  * where `key` selects the mapper and `sourceLabel` is the human-facing
@@ -40,17 +62,21 @@ function buildJobs(config) {
   const s = config.sources || {};
   const newerThan = config.onlyPostsNewerThan;
 
-  // --- Facebook Groups: one run covering all group URLs (items self-label
-  //     via groupTitle, so we don't need to split per group). ---
-  const fb = s.facebookGroups;
-  if (fb?.enabled && (fb.groupUrls || []).length) {
-    const input = {
-      startUrls: fb.groupUrls.map((url) => ({ url })),
-      resultsLimit: fb.resultsLimit ?? 30,
-      viewOption: fb.viewOption || "CHRONOLOGICAL",
-    };
-    if (newerThan) input.onlyPostsNewerThan = newerThan;
-    jobs.push({ key: "facebookGroups", actor: fb.actor, input, sourceLabel: null });
+  // --- Facebook: one keyword search per term (the card source is the
+  //     keyword). Searching all public posts finds actual hiring requests,
+  //     unlike scraping a single fixed group. ---
+  const fb = s.facebook;
+  if (fb?.enabled) {
+    const startDate = toStartDate(newerThan);
+    for (const kw of fb.keywords || []) {
+      const input = {
+        query: kw,
+        resultsCount: fb.resultsCount ?? 30,
+        searchType: fb.searchType || "latest",
+      };
+      if (startDate) input.startDate = startDate;
+      jobs.push({ key: "facebook", actor: fb.actor, input, sourceLabel: kw });
+    }
   }
 
   // --- Instagram: one run per hashtag (so the card source is the hashtag),

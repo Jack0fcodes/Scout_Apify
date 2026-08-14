@@ -63,9 +63,9 @@ Edit [`config.json`](./config.json):
   "onlyPostsNewerThan": "14 days",
   "leadKeywords": ["looking for", "hiring", "commission", ...],
   "sources": {
-    "facebookGroups": {
+    "facebook": {
       "enabled": true,
-      "groupUrls": ["https://www.facebook.com/groups/<id>"]  // public groups only
+      "keywords": ["looking for an illustrator", "need a graphic designer"]
     },
     "instagram": {
       "enabled": true,
@@ -86,11 +86,15 @@ Each hashtag / keyword / profile becomes its own actor run so the card's
 
 ### Actors used
 
-| Source          | Actor                                   |
-| --------------- | --------------------------------------- |
-| Facebook Groups | `apify/facebook-groups-scraper`         |
-| Instagram       | `apify/instagram-scraper`               |
-| Threads         | `futurizerush/meta-threads-scraper`     |
+| Source    | Actor                                 | How it's targeted        |
+| --------- | ------------------------------------- | ------------------------ |
+| Facebook  | `scraper_one/facebook-posts-search`   | keyword search           |
+| Instagram | `apify/instagram-scraper`             | hashtag / profile URL    |
+| Threads   | `futurizerush/meta-threads-scraper`   | keyword search / user    |
+
+All three are **search-driven** — each keyword/hashtag finds matching public
+posts across the platform, so you discover new leads without knowing specific
+groups or accounts in advance.
 
 ## Running it
 
