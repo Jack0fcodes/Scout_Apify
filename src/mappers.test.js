@@ -37,6 +37,51 @@ check("classify: fulfilled request → closed", () => {
 check("classify: vague post with no signal → unknown", () => {
   assert.equal(classifyIntent("Check out this cool character art I made"), "unknown");
 });
+check("classify: tattoo hiring is blocked even with a strong hire signal", () => {
+  assert.equal(classifyIntent("NOW HIRING: tattoo artist, will pay $40/hr"), "off_topic");
+});
+check("classify: PMU / permanent makeup hire → off_topic", () => {
+  assert.equal(classifyIntent("Hiring a PMU instructor, budget is $45/hr"), "off_topic");
+});
+check("classify: apartment post that mentions an illustrator → off_topic", () => {
+  assert.equal(
+    classifyIntent("Looking for an illustrator to join our lease, budget $1500 rent"),
+    "off_topic"
+  );
+});
+check("classify: digital illustration hire still passes → client", () => {
+  assert.equal(classifyIntent("Hiring an illustrator for a book cover, will pay"), "client");
+});
+check("classify: non-art hire (reel editor) → non_art", () => {
+  assert.equal(classifyIntent("Now hiring a reel editor, will pay weekly"), "non_art");
+});
+check("classify: graphic-designer-only hire → non_art (deprioritized)", () => {
+  assert.equal(classifyIntent("We're hiring a graphic designer for our brand"), "non_art");
+});
+check("classify: VA hire → non_art", () => {
+  assert.equal(classifyIntent("Hiring a virtual assistant, budget is $500/mo"), "non_art");
+});
+check("classify: 'looking for an artist to draw my OC' → client", () => {
+  assert.equal(classifyIntent("Looking for an artist to draw my OC, will pay"), "client");
+});
+check("classify: 'graphic artist' with artwork but no core art → non_art (demoted)", () => {
+  assert.equal(
+    classifyIntent("We're hiring a graphic artist to make artwork for our brand"),
+    "non_art"
+  );
+});
+check("classify: illustrator + graphic designer together → client (core art present)", () => {
+  assert.equal(
+    classifyIntent("Hiring an illustrator and graphic designer for our comic, will pay"),
+    "client"
+  );
+});
+check("classify: artist self-promo phrased as 'for your story' → artist_ad", () => {
+  assert.equal(
+    classifyIntent("I create illustrations and character designs. Looking for an illustrator for your story? DM me!"),
+    "artist_ad"
+  );
+});
 
 // --- Facebook Posts Search ---
 check("facebook: client hiring post with budget → High Quality", () => {
@@ -123,14 +168,14 @@ check("threads: client search result → Medium (intent, no budget)", () => {
   const lead = mapThreadsPost(
     {
       post_code: "C9zzz",
-      text_content: "We're hiring a logo designer this week, DM me your rate.",
+      text_content: "We're hiring an illustrator for a comic this week, DM me your rate.",
       username: "startup_ben",
       created_at_timestamp: 1786644261,
     },
-    "need a logo designer"
+    "hiring an illustrator"
   );
   assert.equal(lead.post_id, "threads_C9zzz");
-  assert.equal(lead.source, "need a logo designer");
+  assert.equal(lead.source, "hiring an illustrator");
   assert.equal(lead.author, "@startup_ben");
   assert.equal(lead.url, "https://www.threads.net/@startup_ben/post/C9zzz");
   assert.equal(lead.quality, "Medium");

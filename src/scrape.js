@@ -167,6 +167,10 @@ async function main() {
   // Classifier options — undefined arrays fall back to the built-in defaults.
   const opts = {
     clientLeadsOnly: config.clientLeadsOnly !== false,
+    block: config.blockKeywords,
+    artRoles: config.artRoleKeywords,
+    deprioritize: config.deprioritizeKeywords,
+    coreArt: config.coreArtKeywords,
     strong: config.strongHireKeywords,
     include: config.includeKeywords,
     exclude: config.excludeKeywords,
