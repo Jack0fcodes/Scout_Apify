@@ -75,29 +75,23 @@ function buildJobs(config) {
     }
   }
 
-  // --- Instagram: one run per hashtag (so the card source is the hashtag),
-  //     plus one run per profile URL. Hashtags are scraped via their
-  //     /explore/tags/<tag>/ URL — the actor's `search` mode relies on
-  //     Google and returns ~nothing without a login, whereas the explore
-  //     URL returns real posts. ---
+  // --- Instagram: ALL hashtags + profile URLs in ONE run. Hashtags are
+  //     scraped via their /explore/tags/<tag>/ URL (the actor's `search`
+  //     mode relies on Google and returns ~nothing without a login). Each
+  //     result carries its `inputUrl`, so the mapper recovers the hashtag
+  //     for the card source (sourceLabel left null). `resultsLimit` is per
+  //     URL, so batching keeps the same depth per hashtag. ---
   const ig = s.instagram;
   if (ig?.enabled) {
-    for (const tag of ig.hashtags || []) {
-      const bare = tag.replace(/^#/, "");
-      const input = {
-        directUrls: [`https://www.instagram.com/explore/tags/${encodeURIComponent(bare)}/`],
-        resultsType: "posts",
-        resultsLimit: ig.resultsLimit ?? 30,
-      };
-      if (newerThan) input.onlyPostsNewerThan = newerThan;
-      jobs.push({ key: "instagram", actor: ig.actor, input, sourceLabel: `#${bare}` });
-    }
-    for (const url of ig.profileUrls || []) {
-      const input = {
-        directUrls: [url],
-        resultsType: "posts",
-        resultsLimit: ig.resultsLimit ?? 30,
-      };
+    const directUrls = [
+      ...(ig.hashtags || []).map(
+        (tag) =>
+          `https://www.instagram.com/explore/tags/${encodeURIComponent(tag.replace(/^#/, ""))}/`
+      ),
+      ...(ig.profileUrls || []),
+    ];
+    if (directUrls.length) {
+      const input = { directUrls, resultsType: "posts", resultsLimit: ig.resultsLimit ?? 30 };
       if (newerThan) input.onlyPostsNewerThan = newerThan;
       jobs.push({ key: "instagram", actor: ig.actor, input, sourceLabel: null });
     }
