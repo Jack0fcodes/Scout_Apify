@@ -1,0 +1,15 @@
+{
+  "name": "scout-apify",
+  "version": "1.0.0",
+  "description": "Apify → Scout pipeline: scrape public Meta (Facebook/Instagram/Threads) posts, transform them into Scout's leads.json schema, and publish for the Scout app to fetch.",
+  "type": "module",
+  "scripts": {
+    "scrape": "node src/scrape.js",
+    "validate": "node src/validate.js",
+    "test": "node src/mappers.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "apify-client": "^2.9.3"
+  }
+}

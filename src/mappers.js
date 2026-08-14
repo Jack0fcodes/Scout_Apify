@@ -1,0 +1,81 @@
+// Per-platform mappers. Each takes a raw dataset item from its Apify actor
+// plus an optional `sourceLabel` (the search term / group / handle the run
+// targeted) and returns a partial lead for buildLead(), or null to skip.
+//
+// Field references verified against each actor's inferred output schema:
+//   apify/facebook-groups-scraper, apify/instagram-scraper,
+//   futurizerush/meta-threads-scraper.
+
+import { buildLead, deriveTitle } from "./lead-utils.js";
+
+/** Facebook Groups Scraper → lead */
+export function mapFacebookPost(item, sourceLabel, keywords) {
+  const text = item.text || item.title || "";
+  const id = item.legacyId || item.id || item.feedbackId || item.postId;
+  return buildLead(
+    {
+      post_id: id ? `fb_${id}` : "",
+      platform: "Facebook",
+      source: item.groupTitle || sourceLabel || "Facebook Group",
+      author: item.user?.name || "Unknown",
+      title: item.title || deriveTitle(text),
+      content: text,
+      url: item.url || item.facebookUrl || item.link,
+      created_at: item.timestamp ?? item.time,
+    },
+    keywords
+  );
+}
+
+/** Instagram Scraper → lead (posts/reels from hashtag search or profile) */
+export function mapInstagramPost(item, sourceLabel, keywords) {
+  const text = item.caption || "";
+  const id = item.shortCode || item.id;
+  // Prefer the run's search context (e.g. "#hireanartist"); otherwise the
+  // author handle so the card still shows a meaningful source.
+  const source =
+    sourceLabel ||
+    (item.ownerUsername ? `@${item.ownerUsername}` : "Instagram");
+  return buildLead(
+    {
+      post_id: id ? `ig_${id}` : "",
+      platform: "Instagram",
+      source,
+      author: item.ownerUsername ? `@${item.ownerUsername}` : item.ownerFullName || "Unknown",
+      title: deriveTitle(text),
+      content: text,
+      url: item.url || (item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : ""),
+      created_at: item.timestamp,
+    },
+    keywords
+  );
+}
+
+/** Threads Scraper → lead (search results or user posts) */
+export function mapThreadsPost(item, sourceLabel, keywords) {
+  // Skip pure reposts with no original text of their own.
+  const text = item.text_content || "";
+  const id = item.post_code || item.post_id;
+  const source = sourceLabel || item.search_keyword || (item.username ? `@${item.username}` : "Threads");
+  return buildLead(
+    {
+      post_id: id ? `threads_${id}` : "",
+      platform: "Threads",
+      source,
+      author: item.username ? `@${item.username}` : item.display_name || "Unknown",
+      title: deriveTitle(text),
+      content: text,
+      url: item.post_url || (item.username && item.post_code
+        ? `https://www.threads.net/@${item.username}/post/${item.post_code}`
+        : ""),
+      created_at: item.created_at_timestamp ?? item.created_at,
+    },
+    keywords
+  );
+}
+
+export const MAPPERS = {
+  facebookGroups: mapFacebookPost,
+  instagram: mapInstagramPost,
+  threads: mapThreadsPost,
+};
