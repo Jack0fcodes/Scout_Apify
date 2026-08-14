@@ -54,18 +54,21 @@ function buildJobs(config) {
   }
 
   // --- Instagram: one run per hashtag (so the card source is the hashtag),
-  //     plus one run per profile URL. ---
+  //     plus one run per profile URL. Hashtags are scraped via their
+  //     /explore/tags/<tag>/ URL — the actor's `search` mode relies on
+  //     Google and returns ~nothing without a login, whereas the explore
+  //     URL returns real posts. ---
   const ig = s.instagram;
   if (ig?.enabled) {
     for (const tag of ig.hashtags || []) {
+      const bare = tag.replace(/^#/, "");
       const input = {
-        search: tag,
-        searchType: "hashtag",
+        directUrls: [`https://www.instagram.com/explore/tags/${encodeURIComponent(bare)}/`],
         resultsType: "posts",
         resultsLimit: ig.resultsLimit ?? 30,
       };
       if (newerThan) input.onlyPostsNewerThan = newerThan;
-      jobs.push({ key: "instagram", actor: ig.actor, input, sourceLabel: tag });
+      jobs.push({ key: "instagram", actor: ig.actor, input, sourceLabel: `#${bare}` });
     }
     for (const url of ig.profileUrls || []) {
       const input = {
