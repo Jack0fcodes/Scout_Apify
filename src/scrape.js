@@ -103,22 +103,26 @@ function buildJobs(config) {
     }
   }
 
-  // --- Threads: one run per keyword (search mode) and per username. ---
+  // --- Threads: ALL keywords in ONE run (and all usernames in one run).
+  //     The actor charges a per-run start fee (~$0.08 at 4 GB), so batching
+  //     keywords avoids paying it once per keyword. Each result carries its
+  //     own `search_keyword`, so the mapper still labels the card's source
+  //     correctly (sourceLabel is left null → mapper reads item.search_keyword).
   const th = s.threads;
   if (th?.enabled) {
-    for (const kw of th.keywords || []) {
+    if ((th.keywords || []).length) {
       const input = {
         mode: "search",
-        keywords: [kw],
+        keywords: th.keywords,
         max_posts: th.maxPosts ?? 30,
         search_filter: th.searchFilter || "recent",
       };
       if (newerThan) input.start_date = newerThan;
-      jobs.push({ key: "threads", actor: th.actor, input, sourceLabel: kw });
+      jobs.push({ key: "threads", actor: th.actor, input, sourceLabel: null });
     }
-    for (const user of th.usernames || []) {
-      const input = { mode: "user", usernames: [user], max_posts: th.maxPosts ?? 30 };
-      jobs.push({ key: "threads", actor: th.actor, input, sourceLabel: `@${user.replace(/^@/, "")}` });
+    if ((th.usernames || []).length) {
+      const input = { mode: "user", usernames: th.usernames, max_posts: th.maxPosts ?? 30 };
+      jobs.push({ key: "threads", actor: th.actor, input, sourceLabel: null });
     }
   }
 
