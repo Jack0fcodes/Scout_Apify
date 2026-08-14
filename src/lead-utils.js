@@ -139,6 +139,24 @@ export const DEFAULT_EXCLUDE = [
   "booking now",
   "commissions available",
   "link in bio",
+  // first-person self-promotion ("I'm the artist, hire me")
+  "i create",
+  "i offer",
+  "i specialize",
+  "i provide",
+  "i'm an illustrator",
+  "i am an illustrator",
+  "i'm a freelance",
+  "i am a freelance",
+  "hire me",
+  "available to illustrate",
+  "available to draw",
+  "for your story",
+  "for your project",
+  "for your business",
+  "for your brand",
+  "for your book",
+  "for your next project",
 ];
 
 // Closed / fulfilled / outdated requests. Drop.
@@ -163,18 +181,136 @@ export const DEFAULT_CLOSED = [
   "this is now closed",
 ];
 
+// Hard block: off-topic subjects and non–digital-art creative fields. These
+// are checked FIRST, so they drop a post even when it carries a strong hire
+// signal (e.g. "NOW HIRING: PMU instructor, will pay $40/hr"). Scout is for
+// digital art / illustration — tattoo, makeup, hair, housing, etc. are noise.
+export const DEFAULT_BLOCK = [
+  // off-topic / not art at all
+  "lease",
+  "apartment",
+  "roommate",
+  "for rent",
+  "sublet",
+  "voice actor",
+  "voiceover",
+  "voice over",
+  // non–digital-art creative fields (deprioritized)
+  "tattoo",
+  "pmu",
+  "permanent makeup",
+  "microblading",
+  "makeup artist",
+  "makeup artistry",
+  "nail artist",
+  "nail tech",
+  "hair stylist",
+  "hairstylist",
+  "barber",
+  "balloon artist",
+  "face paint",
+  "straw bale",
+  "house painter",
+  "sign painter",
+  "muralist",
+];
+
+// Digital-art / illustration role signals. A post must mention one of these
+// to count as a client lead — this is what keeps the focus on digital art and
+// drops generic hiring (graphic designer, logo, reel editor, VA, etc.) that
+// isn't the priority. ("art"/"designer" are intentionally NOT here: "art"
+// substring-matches too much, and plain graphic design is deprioritized.
+// Tattoo/makeup "artist" posts are already removed by the block list, which
+// runs first, so "artist" is safe here.)
+export const DEFAULT_ART_ROLES = [
+  "illustrat", // illustrator / illustration / illustrate
+  "artist",
+  "concept art",
+  "character art",
+  "character design",
+  "digital art",
+  "digital paint",
+  "comic art",
+  "comic book",
+  "cover art",
+  "book cover",
+  "webtoon",
+  "fan art",
+  "artwork",
+  "drawing",
+  "to draw",
+  "sketch",
+  "commission",
+  "chibi",
+  "anime style",
+  "art style",
+];
+
+// Graphic-design / non-illustration creative roles. Deprioritized: a post
+// with one of these is dropped UNLESS it also names a core digital-art role
+// (below) — so "hiring an illustrator and graphic designer" is kept, but
+// "hiring a graphic designer" / "graphic artist" alone is not.
+export const DEFAULT_DEPRIORITIZE = [
+  "graphic design",
+  "graphic designer",
+  "graphic artist",
+  "logo design",
+  "logo designer",
+  "brand design",
+  "brand designer",
+  "web design",
+  "ui design",
+  "ux design",
+  "poster design",
+  "flyer design",
+  "video editor",
+  "reel editor",
+];
+
+// Core digital-art roles — a genuine illustration/character/concept signal.
+// If present, a post is kept even when it also mentions graphic design.
+// NOTE: "illustrat" is deliberately NOT here — corporate graphic-design job
+// posts list "Adobe Illustrator" (the software), which would falsely rescue
+// them. It stays in DEFAULT_ART_ROLES so real illustration posts still pass
+// the gate; the rescue relies on unambiguous art activities instead.
+export const DEFAULT_CORE_ART = [
+  "concept art",
+  "character art",
+  "character design",
+  "digital art",
+  "digital paint",
+  "comic",
+  "graphic novel",
+  "cover art",
+  "book cover",
+  "webtoon",
+  "fan art",
+  "chibi",
+  "anime style",
+  "to draw",
+  "drawing",
+  "sketch",
+  "commission",
+];
+
 /** Back-compat alias (used by older callers/tests). */
 export const DEFAULT_LEAD_KEYWORDS = DEFAULT_INCLUDE;
 
 /**
  * Classify a post's intent from its text:
- *   "client"    → a client looking to hire/pay (keep)
+ *   "off_topic" → off-topic subject or non–digital-art field (drop)
+ *   "non_art"   → a hiring post, but not about digital art (drop)
+ *   "client"    → a client looking to hire/pay a (digital) artist (keep)
  *   "artist_ad" → an artist advertising services (drop)
  *   "closed"    → a fulfilled/closed/outdated request (drop)
  *   "unknown"   → no hiring signal; vague/non-committal (drop)
  */
 export function classifyIntent(text, opts = {}) {
   const {
+    block = DEFAULT_BLOCK,
+    artRoles = DEFAULT_ART_ROLES,
+    deprioritize = DEFAULT_DEPRIORITIZE,
+    coreArt = DEFAULT_CORE_ART,
     strong = DEFAULT_STRONG_HIRE,
     include = DEFAULT_INCLUDE,
     exclude = DEFAULT_EXCLUDE,
@@ -183,7 +319,21 @@ export function classifyIntent(text, opts = {}) {
   const t = normalize(text).toLowerCase();
   const has = (list) => list.some((k) => t.includes(k.toLowerCase()));
 
+  // Blocklist runs first so it drops off-topic posts even when they carry a
+  // strong hire signal (e.g. "hiring a tattoo artist, will pay").
+  if (has(block)) return "off_topic";
   if (has(closed)) return "closed";
+
+  // Art-role gate: to be a lead, a post must be about digital art /
+  // illustration — not just any hiring post. This drops reel-editor, VA,
+  // and other non-art hires that aren't the priority.
+  if (!has(artRoles)) return "non_art";
+
+  // Graphic-design demotion: a graphic-design / logo / etc. post is dropped
+  // unless it also names a core digital-art role (illustration, character
+  // art, comic, drawing, commission…). Keeps digital art the priority.
+  if (has(deprioritize) && !has(coreArt)) return "non_art";
+
   if (has(strong)) return "client"; // strong client signal wins over ads
   if (has(exclude)) return "artist_ad";
   if (has(include)) return "client";

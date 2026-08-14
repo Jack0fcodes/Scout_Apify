@@ -51,35 +51,40 @@ every field is required:
 - **quality** — `High Quality` when a client lead has a budget; `Medium` when
   it doesn't. (`Low` only appears if you disable filtering — see below.)
 
-## Lead filtering (client vs. artist)
+## Lead filtering (digital-art client leads only)
 
-The pipeline only keeps posts where a **client is looking to hire/pay an
-artist**, and drops:
+The pipeline keeps only posts where a **client is looking to hire/pay for
+digital art / illustration**. A post runs through this chain (first match
+wins), and only `client` is kept:
 
-- **artists advertising themselves** — "commissions open", "for hire",
-  "taking commissions", "DM for prices", "my portfolio", …
-- **closed / fulfilled / outdated** requests — "found someone",
-  "commissions closed", "position filled", …
-- **vague / non-committal** posts with no hiring signal at all.
+1. **Block** (`blockKeywords`) → drop. Off-topic subjects and non-art fields —
+   tattoo, PMU/permanent makeup, hair, nails, housing/lease, voice acting.
+   Runs first, so it beats even a strong hire signal
+   (e.g. "hiring a tattoo artist, will pay").
+2. **Closed** (`closedKeywords`) → drop. "found someone", "commissions
+   closed", "position filled", …
+3. **Art-role gate** (`artRoleKeywords`) → must mention art (illustrator,
+   character/concept art, comic, drawing, commission…) or it's dropped as
+   `non_art`. This removes reel-editor / VA / generic hires.
+4. **Graphic-design demotion** (`deprioritizeKeywords` vs `coreArtKeywords`) →
+   a graphic-design / logo / brand post is dropped unless it also names a
+   **core** digital-art role (illustration, character art, comic, …). Keeps
+   digital art the priority over plain graphic design.
+5. **Strong hire** (`strongHireKeywords`) → keep, even if ad phrases are also
+   present ("looking to hire", "will pay", "budget is").
+6. **Artist ad** (`excludeKeywords`) → drop. "commissions open", "for hire",
+   "DM for prices", "my portfolio", plus first-person self-promo
+   ("I create…", "hire me", "for your story/project").
+7. **Client** (`includeKeywords`) → keep. "need an illustrator", "who can
+   draw", "paying artist", …
+8. Otherwise → drop as vague.
 
-How it decides (in order), per post:
-
-1. A **closed** signal → drop.
-2. A **strong hire** signal ("looking to hire", "will pay", "budget is",
-   "we're hiring") → keep, even if ad phrases are also present.
-3. An **artist-ad** signal → drop.
-4. A weaker **client** signal ("need an illustrator", "who can draw",
-   "paying artist") → keep.
-5. Otherwise → drop as vague.
-
-All four keyword sets are editable in `config.json`
-(`strongHireKeywords`, `includeKeywords`, `excludeKeywords`,
-`closedKeywords`). To keep **everything** and just label quality instead of
-dropping, set `"clientLeadsOnly": false`.
+Every keyword set above is editable in `config.json`. To keep **everything**
+and just label quality instead of dropping, set `"clientLeadsOnly": false`.
 
 > Note: this is keyword-based, so it's high-precision but not perfect —
-> a rare off-topic post that happens to contain a hiring phrase can slip
-> through. Tighten the keyword lists to taste.
+> a rare off-topic post that happens to contain the right phrase can slip
+> through (or a good one get dropped). Tighten the lists to taste.
 
 ## Configure what gets scraped
 
