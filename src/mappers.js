@@ -27,15 +27,22 @@ export function mapFacebookPost(item, sourceLabel, opts) {
   );
 }
 
+/** Derive an Instagram card source: the hashtag it came from, else @handle. */
+function instagramSource(item) {
+  // When hashtags are batched into one run, each item carries the explore URL
+  // it was scraped from (e.g. .../explore/tags/hireanartist/).
+  const m = (item.inputUrl || "").match(/\/explore\/tags\/([^/?#]+)/i);
+  if (m) return `#${decodeURIComponent(m[1])}`;
+  return item.ownerUsername ? `@${item.ownerUsername}` : "Instagram";
+}
+
 /** Instagram Scraper → lead (posts/reels from hashtag search or profile) */
 export function mapInstagramPost(item, sourceLabel, opts) {
   const text = item.caption || "";
   const id = item.shortCode || item.id;
-  // Prefer the run's search context (e.g. "#hireanartist"); otherwise the
-  // author handle so the card still shows a meaningful source.
-  const source =
-    sourceLabel ||
-    (item.ownerUsername ? `@${item.ownerUsername}` : "Instagram");
+  // Prefer an explicit run label; otherwise derive from the item (hashtag
+  // via inputUrl when batched, else the author handle).
+  const source = sourceLabel || instagramSource(item);
   return buildLead(
     {
       post_id: id ? `ig_${id}` : "",

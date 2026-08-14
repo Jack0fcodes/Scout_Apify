@@ -163,6 +163,22 @@ check("instagram: artist 'commissions open' caption is dropped", () => {
   assert.equal(lead, null);
 });
 
+check("instagram: batched run recovers the hashtag source from inputUrl", () => {
+  const lead = mapInstagramPost(
+    {
+      shortCode: "Cbatch1",
+      caption: "Looking for an illustrator to draw my D&D character, will pay!",
+      ownerUsername: "dm_dave",
+      timestamp: "2026-08-12T09:15:00Z",
+      inputUrl: "https://www.instagram.com/explore/tags/hireanillustrator/",
+      // no sourceLabel passed (batched run)
+    },
+    null
+  );
+  assert.equal(lead.source, "#hireanillustrator");
+  assert.equal(lead.author, "@dm_dave");
+});
+
 // --- Threads ---
 check("threads: client search result → Medium (intent, no budget)", () => {
   const lead = mapThreadsPost(
