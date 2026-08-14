@@ -1,0 +1,51 @@
+name: Scout Meta Scraper
+
+# Scrapes public Meta (Facebook / Instagram / Threads) posts via Apify,
+# transforms them into Scout's leads.json schema, and commits the result so
+# the Scout app can fetch it from the raw endpoint.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours (UTC)
+  workflow_dispatch: {} # manual "Run workflow" button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scout-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scrape Meta → build leads.json
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: npm run scrape
+
+      - name: Validate leads.json
+        run: npm run validate
+
+      - name: Commit if changed
+        run: |
+          git config user.name "scout-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add leads.json
+          if git diff --staged --quiet; then
+            echo "No changes to leads.json."
+          else
+            git commit -m "chore: refresh Meta leads ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push
+          fi

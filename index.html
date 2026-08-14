@@ -1,1 +1,34 @@
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scout_Apify — Meta lead feed</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 640px; margin: 6vh auto; padding: 0 1.25rem; line-height: 1.6;
+      }
+      code { background: rgba(127,127,127,.18); padding: .15em .4em; border-radius: 4px; }
+      a { color: #2f81f7; }
+      .muted { opacity: .7; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Scout_Apify</h1>
+    <p>
+      Apify → Scout pipeline. Public Meta posts (Facebook Groups, Instagram,
+      Threads) are scraped, transformed into Scout's lead schema, and published
+      as <a href="./leads.json"><code>leads.json</code></a>.
+    </p>
+    <p>Scout fetches the raw feed from:</p>
+    <p>
+      <code>https://raw.githubusercontent.com/JackOfcodes/Scout_Apify/main/leads.json</code>
+    </p>
+    <p class="muted">
+      Refreshed every 6 hours by a GitHub Action. See the
+      <a href="https://github.com/JackOfcodes/Scout_Apify">repository</a> for setup.
+    </p>
+  </body>
+</html>
