@@ -4,9 +4,7 @@
   "keepExisting": true,
   "onlyPostsNewerThan": "7 days",
   "maxAgeDays": 14,
-
   "clientLeadsOnly": true,
-
   "artRoleKeywords": [
     "illustrat",
     "artist",
@@ -28,9 +26,9 @@
     "commission",
     "chibi",
     "anime style",
-    "art style"
+    "art style",
+    "manga"
   ],
-
   "deprioritizeKeywords": [
     "graphic design",
     "graphic designer",
@@ -64,9 +62,9 @@
     "to draw",
     "drawing",
     "sketch",
-    "commission"
+    "commission",
+    "manga"
   ],
-
   "blockKeywords": [
     "lease",
     "apartment",
@@ -93,7 +91,6 @@
     "sign painter",
     "muralist"
   ],
-
   "strongHireKeywords": [
     "looking to hire",
     "want to hire",
@@ -141,7 +138,23 @@
     "in search of an artist",
     "book cover artist",
     "book cover illustrator",
-    "character commission"
+    "character commission",
+    "looking for a comic artist",
+    "need a comic artist",
+    "hiring a comic artist",
+    "need a character designer",
+    "looking for a character designer",
+    "need a digital painter",
+    "children's book illustrator",
+    "looking to commission",
+    "who can draw my",
+    "need someone to draw",
+    "need someone to illustrate",
+    "manga artist needed",
+    "artist needed",
+    "illustrator needed",
+    "artist wanted",
+    "illustrator wanted"
   ],
   "excludeKeywords": [
     "for hire",
@@ -228,11 +241,17 @@
         "looking for an illustrator",
         "need an illustrator",
         "hiring an illustrator",
+        "looking for a comic artist",
+        "need a comic artist",
         "looking for a character artist",
+        "need a character artist",
+        "need a character designer",
         "need a concept artist",
         "hire a digital artist",
         "looking for a digital artist",
+        "children's book illustrator",
         "book cover illustrator",
+        "looking to commission an artist",
         "commission an artist"
       ]
     },
@@ -246,7 +265,15 @@
         "#artistwanted",
         "#illustratorwanted",
         "#needanartist",
-        "#lookingforanartist"
+        "#lookingforanartist",
+        "#artistneeded",
+        "#illustratorneeded",
+        "#hiringartist",
+        "#hiringillustrator",
+        "#commissionwanted",
+        "#needanillustrator",
+        "#characterartistwanted",
+        "#conceptartistwanted"
       ],
       "profileUrls": []
     },
@@ -259,9 +286,20 @@
         "looking for an illustrator",
         "need an illustrator",
         "hiring an illustrator",
+        "looking for a comic artist",
+        "need a comic artist",
         "need a character artist",
+        "need a character designer",
         "looking for a concept artist",
         "hire a digital artist",
+        "need a digital painter",
+        "children's book illustrator",
+        "book cover artist",
+        "looking to commission an artist",
+        "who can draw my character",
+        "need someone to draw",
+        "manga artist needed",
+        "hiring a concept artist",
         "commission an artist"
       ],
       "usernames": []
