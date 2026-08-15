@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "scrape": "node src/scrape.js",
+    "preview": "node src/preview.js",
     "validate": "node src/validate.js",
     "test": "node src/mappers.test.js"
   },
