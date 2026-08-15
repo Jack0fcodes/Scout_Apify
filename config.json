@@ -2,7 +2,8 @@
   "outputFile": "leads.json",
   "maxLeads": 250,
   "keepExisting": true,
-  "onlyPostsNewerThan": "5 days",
+  "onlyPostsNewerThan": "7 days",
+  "maxAgeDays": 14,
 
   "clientLeadsOnly": true,
 

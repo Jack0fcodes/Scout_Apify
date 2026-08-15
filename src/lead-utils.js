@@ -457,6 +457,17 @@ export function dedupeById(leads) {
   return out;
 }
 
+/**
+ * True if a lead's created_at is within `days` of now. Leads with an
+ * unparseable date are kept (treated as fresh). `days` of 0/undefined = no cap.
+ */
+export function isFreshEnough(lead, days) {
+  if (!days) return true;
+  const t = new Date(lead && lead.created_at).getTime();
+  if (Number.isNaN(t)) return true;
+  return Date.now() - t <= days * 86400000;
+}
+
 /** Newest-first by created_at. */
 export function sortNewestFirst(leads) {
   return [...leads].sort(
