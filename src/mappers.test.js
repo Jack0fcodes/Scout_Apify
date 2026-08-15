@@ -5,7 +5,7 @@
 
 import assert from "node:assert/strict";
 import { mapFacebookPost, mapInstagramPost, mapThreadsPost } from "./mappers.js";
-import { classifyIntent } from "./lead-utils.js";
+import { classifyIntent, isFreshEnough } from "./lead-utils.js";
 
 let passed = 0;
 function check(name, fn) {
@@ -81,6 +81,20 @@ check("classify: artist self-promo phrased as 'for your story' → artist_ad", (
     classifyIntent("I create illustrations and character designs. Looking for an illustrator for your story? DM me!"),
     "artist_ad"
   );
+});
+
+// --- Freshness cap ---
+check("freshness: a 2-month-old lead is dropped at 14 days", () => {
+  const old = { created_at: new Date(Date.now() - 60 * 86400000).toISOString() };
+  assert.equal(isFreshEnough(old, 14), false);
+});
+check("freshness: a 3-day-old lead is kept at 14 days", () => {
+  const recent = { created_at: new Date(Date.now() - 3 * 86400000).toISOString() };
+  assert.equal(isFreshEnough(recent, 14), true);
+});
+check("freshness: no cap (undefined days) keeps everything", () => {
+  const old = { created_at: "2020-01-01T00:00:00Z" };
+  assert.equal(isFreshEnough(old, undefined), true);
 });
 
 // --- Facebook Posts Search ---

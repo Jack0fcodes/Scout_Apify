@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MAPPERS } from "./mappers.js";
-import { dedupeById, sortNewestFirst } from "./lead-utils.js";
+import { dedupeById, sortNewestFirst, isFreshEnough } from "./lead-utils.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -201,14 +201,23 @@ async function main() {
 
   const existing = config.keepExisting ? loadExisting(config.outputFile) : [];
   // New leads first so they win on dedupe (fresher content/quality).
-  const merged = sortNewestFirst(dedupeById([...fresh, ...existing]));
+  let merged = sortNewestFirst(dedupeById([...fresh, ...existing]));
+
+  // Hard freshness cap: drop anything older than maxAgeDays, regardless of
+  // what an actor returned or how long a lead has been carried over. This is
+  // what guarantees the feed stays recent (no stale/2-month-old posts).
+  const beforeAge = merged.length;
+  merged = merged.filter((l) => isFreshEnough(l, config.maxAgeDays));
+  const dropped = beforeAge - merged.length;
+
   const capped = merged.slice(0, config.maxLeads ?? 250);
 
   const outPath = path.join(ROOT, config.outputFile);
   fs.writeFileSync(outPath, JSON.stringify(capped, null, 2) + "\n");
   console.log(
     `\nWrote ${capped.length} leads to ${config.outputFile} ` +
-      `(${fresh.length} scraped, ${existing.length} carried over, ${failures} run(s) failed).`
+      `(${fresh.length} scraped, ${existing.length} carried over, ` +
+      `${dropped} older than ${config.maxAgeDays ?? "∞"}d dropped, ${failures} run(s) failed).`
   );
 }
 
