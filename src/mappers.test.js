@@ -4,8 +4,23 @@
 // actor's real output. Run: npm test
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { mapFacebookPost, mapInstagramPost, mapThreadsPost } from "./mappers.js";
-import { classifyIntent, isFreshEnough } from "./lead-utils.js";
+import { classifyIntent, isFreshEnough, dedupeByContent } from "./lead-utils.js";
+
+// Build classifier options from the live config.json so these tests validate
+// exactly what the pipeline runs with (config overrides the code defaults).
+const cfg = JSON.parse(fs.readFileSync(new URL("../config.json", import.meta.url), "utf8"));
+const OPTS = {
+  block: cfg.blockKeywords,
+  artRoles: cfg.artRoleKeywords,
+  deprioritize: cfg.deprioritizeKeywords,
+  coreArt: cfg.coreArtKeywords,
+  strong: cfg.strongHireKeywords,
+  include: cfg.includeKeywords,
+  exclude: cfg.excludeKeywords,
+  closed: cfg.closedKeywords,
+};
 
 let passed = 0;
 function check(name, fn) {
@@ -95,6 +110,40 @@ check("freshness: a 3-day-old lead is kept at 14 days", () => {
 check("freshness: no cap (undefined days) keeps everything", () => {
   const old = { created_at: "2020-01-01T00:00:00Z" };
   assert.equal(isFreshEnough(old, undefined), true);
+});
+
+check("classify: artist self-promo with a curly apostrophe → artist_ad", () => {
+  // Curly apostrophe in "I'm" must still match the "i'm a comic artist" rule.
+  assert.equal(
+    classifyIntent("Hi everyone, I’m Hank and I’m a comic artist, check my work", OPTS),
+    "artist_ad"
+  );
+});
+check("classify: employment job posting → off_topic", () => {
+  assert.equal(
+    classifyIntent("WE'RE HIRING an illustrator. Qualifications: 2 yrs. Send your CV, immediate joining", OPTS),
+    "off_topic"
+  );
+});
+check("classify: hiring-advice post → off_topic (not a request)", () => {
+  assert.equal(
+    classifyIntent("Something I wish more authors knew before hiring an illustrator: ask for sketches", OPTS),
+    "off_topic"
+  );
+});
+check("classify: 'no longer accepting applications' → closed", () => {
+  assert.equal(
+    classifyIntent("Hiring a 2D game artist. UPDATE: no longer accepting applications", OPTS),
+    "closed"
+  );
+});
+check("classify: crochet/craft studio hire → off_topic", () => {
+  assert.equal(classifyIntent("Looking for a studio hand to crochet, part-time", OPTS), "off_topic");
+});
+check("dedupeByContent: same author + same opening text collapses to one", () => {
+  const a = { post_id: "x1", author: "@a", content: "I am looking for an illustrator for my new book, fantasy genre" };
+  const b = { post_id: "x2", author: "@a", content: "I am looking for an illustrator for my new book, fantasy genre" };
+  assert.equal(dedupeByContent([a, b]).length, 1);
 });
 
 // --- Facebook Posts Search ---

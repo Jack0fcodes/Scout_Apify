@@ -382,7 +382,10 @@ export function deriveTitle(text, max = 90) {
  * keyword detection can see it.
  */
 function normalize(text) {
-  return String(text || "").normalize("NFKC");
+  return String(text || "")
+    .normalize("NFKC")
+    .replace(/[‘’ʼ′]/g, "'") // curly/smart apostrophes → '
+    .replace(/[“”]/g, '"'); // curly quotes → "
 }
 
 /** Pull a budget string out of free text, or "unknown" if none found. */
@@ -452,6 +455,26 @@ export function dedupeById(leads) {
   for (const lead of leads) {
     if (!lead || !lead.post_id || seen.has(lead.post_id)) continue;
     seen.add(lead.post_id);
+    out.push(lead);
+  }
+  return out;
+}
+
+/**
+ * Dedupe near-identical posts (same author + same opening text) even when
+ * their post_id differs — e.g. the same request cross-posted or re-scraped
+ * under a new id. Keeps the first occurrence.
+ */
+export function dedupeByContent(leads) {
+  const seen = new Set();
+  const out = [];
+  for (const lead of leads) {
+    if (!lead) continue;
+    const author = normalize(lead.author || "").toLowerCase().trim();
+    const body = normalize(lead.content || "").toLowerCase().replace(/\s+/g, "").slice(0, 120);
+    const sig = `${author}|${body}`;
+    if (body && seen.has(sig)) continue;
+    if (body) seen.add(sig);
     out.push(lead);
   }
   return out;
