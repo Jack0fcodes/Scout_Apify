@@ -146,6 +146,26 @@ check("dedupeByContent: same author + same opening text collapses to one", () =>
   assert.equal(dedupeByContent([a, b]).length, 1);
 });
 
+// --- Guard against over-filtering: genuine leads must NOT be dropped ---
+check("classify: genuine lead mentioning 'award-winning' → client (not dropped)", () => {
+  assert.equal(
+    classifyIntent("Looking for an award-winning illustrator for my fantasy novel, will pay", OPTS),
+    "client"
+  );
+});
+check("classify: illustrator request that also mentions a logo → client", () => {
+  assert.equal(
+    classifyIntent("Need an illustrator for my book and a logo, DM me", OPTS),
+    "client"
+  );
+});
+check("classify: illustrator hire mentioning pay → client", () => {
+  assert.equal(
+    classifyIntent("Hiring an illustrator for my comic, competitive pay", OPTS),
+    "client"
+  );
+});
+
 // --- Facebook Posts Search ---
 check("facebook: client hiring post with budget → High Quality", () => {
   const lead = mapFacebookPost(
