@@ -15,7 +15,7 @@ import { ApifyClient } from "apify-client";
 import fs from "node:fs";
 import path from "node:path";
 import { MAPPERS } from "./mappers.js";
-import { dedupeById, sortNewestFirst, isFreshEnough } from "./lead-utils.js";
+import { dedupeById, dedupeByContent, sortNewestFirst, isFreshEnough } from "./lead-utils.js";
 import { ROOT, loadConfig, buildJobs } from "./jobs.js";
 
 async function runJob(client, job, opts) {
@@ -96,7 +96,7 @@ async function main() {
 
   const existing = config.keepExisting ? loadExisting(config.outputFile) : [];
   // New leads first so they win on dedupe (fresher content/quality).
-  let merged = sortNewestFirst(dedupeById([...fresh, ...existing]));
+  let merged = sortNewestFirst(dedupeByContent(dedupeById([...fresh, ...existing])));
 
   // Hard freshness cap: drop anything older than maxAgeDays, regardless of
   // what an actor returned or how long a lead has been carried over. This is
