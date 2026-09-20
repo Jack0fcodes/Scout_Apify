@@ -43,8 +43,7 @@
     "poster design",
     "flyer design",
     "video editor",
-    "reel editor",
-    "logo"
+    "reel editor"
   ],
   "coreArtKeywords": [
     "concept art",
@@ -108,7 +107,6 @@
     "join the team",
     "growing our team",
     "we are growing our team",
-    "salary",
     "full-time position",
     "part-time position",
     "hiring event",
@@ -116,14 +114,16 @@
     "i wish more",
     "things i wish",
     "what i wish",
-    "before hiring an",
     "buy art work",
     "buy artwork",
     "bought art work",
     "bought artwork",
     "building a career",
     "that is the point",
-    "that's the point"
+    "that's the point",
+    "salary range",
+    "salary:",
+    "monthly salary"
   ],
   "strongHireKeywords": [
     "looking to hire",
@@ -262,9 +262,7 @@
     "i am an artist",
     "lets work together",
     "i wish more authors",
-    "award-winning",
     "things i wish",
-    "before hiring an",
     "i'm a comic artist",
     "i'm an artist",
     "i've just finished",
